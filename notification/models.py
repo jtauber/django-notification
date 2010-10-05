@@ -106,7 +106,7 @@ class NoticeManager(models.Manager):
             lookup_kwargs = {"recipient": user}
         qs = self.filter(**lookup_kwargs)
         if not archived:
-            self.filter(archived=archived)
+            qs = qs.filter(archived=archived)
         if unseen is not None:
             qs = qs.filter(unseen=unseen)
         if on_site is not None:
