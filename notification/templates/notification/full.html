@@ -1,3 +1,3 @@
 {% load i18n %}
-<h3>{% blocktrans %}{{ notice.display }}{% endblocktrans %}</h3>
-<p>{% blocktrans %}{{ notice.description }}{% endblocktrans %}</p>
+<h3>{% blocktrans with title=notice.display %}{{ title }}{% endblocktrans %}</h3>
+<p>{% blocktrans with description=notice.description %}{{ description }}{% endblocktrans %}</p>
