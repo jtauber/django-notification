@@ -298,7 +298,7 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
         context = Context({
             "recipient": user,
             "sender": sender,
-            "notice": ugettext(notice_type.display),
+            "notice": notice_type,
             "notices_url": notices_url,
             "current_site": current_site,
         })
