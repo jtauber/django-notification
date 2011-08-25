@@ -73,6 +73,17 @@ and ``notification/friends_full.txt`` might contain::
 
 The context variables are provided when sending the notification.
 
+Translation Support
+===================
+
+If your project supports multiple languages and you want that the users get their notices in their chosen language, you need to add this line to your settings file::
+
+    NOTIFICATION_LANGUAGE_MODULE = "account.Account"
+
+The value of this setting should be formatted like "app.Model" and the model should have at least two fields: a foreignkey to the User class (user) and a language field (language) which stores the language code (e.g. en).
+
+The above example shows the usual setting in Pinax, but you can use any other app.
+
 
 Sending Notification
 ====================
