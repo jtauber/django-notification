@@ -1,5 +1,4 @@
-from django.core.urlresolvers import reverse
-from django.shortcuts import render_to_response, get_object_or_404
+from django.shortcuts import render_to_response, get_object_or_404, redirect
 from django.http import HttpResponseRedirect, Http404
 from django.template import RequestContext
 
@@ -64,6 +63,7 @@ def notice_settings(request):
     """
     notice_types = NoticeType.objects.all()
     settings_table = []
+    saved = False
     for notice_type in notice_types:
         settings_row = []
         for medium_id, medium_display in NOTICE_MEDIA:
@@ -74,10 +74,12 @@ def notice_settings(request):
                     if not setting.send:
                         setting.send = True
                         setting.save()
+                        saved = True
                 else:
                     if setting.send:
                         setting.send = False
                         setting.save()
+                        saved = True
             settings_row.append((form_label, setting.send))
         settings_table.append({"notice_type": notice_type, "cells": settings_row})
     
@@ -90,10 +92,12 @@ def notice_settings(request):
         "rows": settings_table,
     }
     
-    return render_to_response("notification/notice_settings.html", {
-        "notice_types": notice_types,
-        "notice_settings": notice_settings,
-    }, context_instance=RequestContext(request))
+    if saved:
+        return redirect('notification.views.notice_settings')
+    else:
+        return render_to_response("notification/notice_settings.html", {
+                "notice_types": notice_types, "notice_settings": notice_settings,},
+                context_instance=RequestContext(request))
 
 
 @login_required
@@ -191,4 +195,4 @@ def mark_all_seen(request):
     for notice in Notice.objects.notices_for(request.user, unseen=True):
         notice.unseen = False
         notice.save()
-    return HttpResponseRedirect(reverse("notification_notices"))
+    return redirect('notification.views.notices')
