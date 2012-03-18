@@ -93,7 +93,7 @@ The parameters are:
  * ``users`` is an iterable of ``User`` objects to send the notification to.
  * ``label`` is the label you used in the previous step to identify the notice
    type.
- * ``extra_content`` is a dictionary to add custom context entries to the
+ * ``extra_context`` is a dictionary to add custom context entries to the
    template used to render to notification. This is optional.
  * ``on_site`` is a boolean flag to determine whether an ``Notice`` object is
    created in the database.
