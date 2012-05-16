@@ -2,7 +2,7 @@ from django.conf.urls.defaults import *
 
 from notification.views import notices, mark_all_seen, feed_for_user, single, notice_settings, archive
 
-urlpatterns = patterns('',
+urlpatterns = patterns("",
     url(r'^$', notices, {'archived' : False }, name="notification_notices"),
     url(r'^all/$', notices, {'archived' : True }, name="notification_notices_all"),
     url(r'^settings/$', notice_settings, name="notification_notice_settings"),

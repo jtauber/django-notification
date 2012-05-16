@@ -1,18 +1,18 @@
-from datetime import datetime
+import datetime
 
 from django.core.urlresolvers import reverse
 from django.conf import settings
-from django.contrib.sites.models import Site
-from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.template.defaultfilters import linebreaks, escape, striptags
 from django.utils.translation import ugettext_lazy as _
 
+from django.contrib.auth.models import User
+from django.contrib.sites.models import Site
 from notification.models import Notice
 from notification.atomformat import Feed
 
 
-ITEMS_PER_FEED = getattr(settings, 'ITEMS_PER_FEED', 20)
+ITEMS_PER_FEED = getattr(settings, "ITEMS_PER_FEED", 20)
 DEFAULT_HTTP_PROTOCOL = getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http")
 
 
@@ -34,13 +34,13 @@ class BaseNoticeFeed(Feed):
         return notification.added
     
     def item_content(self, notification):
-        return {"type" : "html", }, linebreaks(escape(notification.message))
+        return {"type": "html"}, linebreaks(escape(notification.message))
     
     def item_links(self, notification):
         return [{"href" : self.item_id(notification)}]
     
     def item_authors(self, notification):
-        return [{"name" : notification.recipient.username}]
+        return [{"name": notification.recipient.username}]
 
 
 class NoticeUserFeed(BaseNoticeFeed):
@@ -51,11 +51,11 @@ class NoticeUserFeed(BaseNoticeFeed):
         return "%s://%s%s" % (
             DEFAULT_HTTP_PROTOCOL,
             Site.objects.get_current().domain,
-            reverse('notification_feed_for_user'),
+            reverse("notification_feed_for_user"),
         )
 
     def feed_title(self, user):
-        return _('Notices Feed')
+        return _("Notices Feed")
 
     def feed_updated(self, user):
         qs = Notice.objects.filter(recipient=user)
@@ -63,16 +63,16 @@ class NoticeUserFeed(BaseNoticeFeed):
         # must be a feed_updated field as per the Atom specifications, however
         # there is no real data to go by, and an arbitrary date can be static.
         if qs.count() == 0:
-            return datetime(year=2008, month=7, day=1)
-        return qs.latest('added').added
+            return datetime.datetime(year=2008, month=7, day=1)
+        return qs.latest("added").added
 
     def feed_links(self, user):
         complete_url = "%s://%s%s" % (
             DEFAULT_HTTP_PROTOCOL,
             Site.objects.get_current().domain,
-            reverse('notification_notices'),
+            reverse("notification_notices"),
         )
-        return ({'href': complete_url},)
+        return ({"href": complete_url},)
 
     def items(self, user):
         return Notice.objects.notices_for(user).order_by("-added")[:ITEMS_PER_FEED]
