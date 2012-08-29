@@ -81,7 +81,7 @@ class Feed(object):
     VALIDATE = True
     
     
-    def __init__(self, slug, feed_url):
+    def __init__(self, slug=None, feed_url=None):
         # @@@ slug and feed_url are not used yet
         pass
     

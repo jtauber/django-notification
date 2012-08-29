@@ -78,7 +78,6 @@ def get_notification_setting(user, notice_type, medium):
     except NoticeSetting.DoesNotExist:
         default = (NOTICE_MEDIA_DEFAULTS[medium] <= notice_type.default)
         setting = NoticeSetting(user=user, notice_type=notice_type, medium=medium, send=default)
-        setting.save()
         return setting
 
 
