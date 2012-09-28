@@ -25,7 +25,7 @@ LOCK_WAIT_TIMEOUT = getattr(settings, "NOTIFICATION_LOCK_WAIT_TIMEOUT", -1)
 
 def send_all():
     lock = FileLock("send_notices")
-    
+
     logging.debug("acquiring lock...")
     try:
         lock.acquire(LOCK_WAIT_TIMEOUT)
@@ -36,25 +36,30 @@ def send_all():
         logging.debug("waiting for the lock timed out. quitting.")
         return
     logging.debug("acquired.")
-    
+
     batches, sent = 0, 0
     start_time = time.time()
-    
+
     try:
         # nesting the try statement to be Python 2.4
         try:
             for queued_batch in NoticeQueueBatch.objects.all():
-                notices = pickle.loads(str(queued_batch.pickled_data).decode("base64"))
+                data = str(queued_batch.pickled_data).decode("base64")
+                notices = pickle.loads(data)
                 for user, label, extra_context, on_site, sender in notices:
                     try:
                         user = User.objects.get(pk=user)
-                        logging.info("emitting notice %s to %s" % (label, user))
-                        # call this once per user to be atomic and allow for logging to
-                        # accurately show how long each takes.
-                        notification.send_now([user], label, extra_context, on_site, sender)
+                        logging.info("emitting notice %s to %s" %
+                                                                (label, user))
+                        # call this once per user to be atomic and allow for
+                        # logging to accurately show how long each takes.
+                        notification.send_now([user], label, extra_context,
+                                              on_site, sender)
                     except User.DoesNotExist:
                         # Ignore deleted users, just warn about them
-                        logging.warning("not emitting notice %s to user %s since it does not exist" % (label, user))
+                        logging.warning("not emitting notice %s to user %s"
+                                        " since it does not exist" %
+                                                                (label, user))
                     sent += 1
                 queued_batch.delete()
                 batches += 1
@@ -64,7 +69,8 @@ def send_all():
             # email people
             current_site = Site.objects.get_current()
             subject = "[%s emit_notices] %r" % (current_site.name, e)
-            message = "%s" % ("\n".join(traceback.format_exception(*sys.exc_info())),)
+            message = "%s" % ("\n".join(
+                                traceback.format_exception(*sys.exc_info())),)
             mail_admins(subject, message, fail_silently=True)
             # log it as critical
             logging.critical("an exception occurred: %r" % e)
@@ -72,7 +78,7 @@ def send_all():
         logging.debug("releasing lock...")
         lock.release()
         logging.debug("released.")
-    
+
     logging.info("")
     logging.info("%s batches, %s sent" % (batches, sent,))
     logging.info("done in %.2f seconds" % (time.time() - start_time))
