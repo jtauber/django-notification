@@ -18,48 +18,48 @@ DEFAULT_HTTP_PROTOCOL = getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http")
 
 
 class BaseNoticeFeed(Feed):
-    
+
     def item_id(self, notification):
         return "%s://%s%s" % (
             DEFAULT_HTTP_PROTOCOL,
             Site.objects.get_current().domain,
             notification.get_absolute_url(),
         )
-    
+
     def item_title(self, notification):
         return striptags(notification.message)
-    
+
     def item_updated(self, notification):
         return notification.added
-    
+
     def item_published(self, notification):
         return notification.added
-    
+
     def item_content(self, notification):
         return {"type": "html"}, linebreaks(escape(notification.message))
-    
+
     def item_links(self, notification):
         return [{"href": self.item_id(notification)}]
-    
+
     def item_authors(self, notification):
         return [{"name": notification.recipient.username}]
 
 
 class NoticeUserFeed(BaseNoticeFeed):
-    
+
     def get_object(self, params):
         return get_object_or_404(User, username=params[0].lower())
-    
+
     def feed_id(self, user):
         return "%s://%s%s" % (
             DEFAULT_HTTP_PROTOCOL,
             Site.objects.get_current().domain,
             reverse("notification_feed_for_user"),
         )
-    
+
     def feed_title(self, user):
         return _("Notices Feed")
-    
+
     def feed_updated(self, user):
         qs = Notice.objects.filter(recipient=user)
         # We return an arbitrary date if there are no results, because there
@@ -68,7 +68,7 @@ class NoticeUserFeed(BaseNoticeFeed):
         if qs.count() == 0:
             return datetime.datetime(year=2008, month=7, day=1)
         return qs.latest("added").added
-    
+
     def feed_links(self, user):
         complete_url = "%s://%s%s" % (
             DEFAULT_HTTP_PROTOCOL,
@@ -76,6 +76,7 @@ class NoticeUserFeed(BaseNoticeFeed):
             reverse("notification_notices"),
         )
         return ({"href": complete_url},)
-    
+
     def items(self, user):
-        return Notice.objects.notices_for(user).order_by("-added")[:ITEMS_PER_FEED]
+        ordered_qset = Notice.objects.notices_for(user).order_by("-added")
+        return ordered_qset[:ITEMS_PER_FEED]
