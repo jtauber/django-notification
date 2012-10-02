@@ -261,6 +261,13 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
     
     You can pass in on_site=False to prevent the notice emitted from being
     displayed on the site.
+
+    AnonymousUser instances can be passed in the ``users`` iterable. In order 
+    for their notice to be sent, they need at least the ``email`` attribute 
+    set. Setting other attributes may help the templates to generate custom 
+    emails. 
+    Note that if the ``email`` attribute is missing, no exception is raised.
+    In any case, no on-site notice is created for anonymous users.
     """
     if extra_context is None:
         extra_context = {}
@@ -289,14 +296,15 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
         recipients = []
         # get user language for user from language store defined in
         # NOTIFICATION_LANGUAGE_MODULE setting
-        try:
-            language = get_notification_language(user)
-        except LanguageStoreNotAvailable:
-            language = None
+        if not isinstance(user, AnonymousUser):
+            try:
+                language = get_notification_language(user)
+            except LanguageStoreNotAvailable:
+                language = None
         
-        if language is not None:
-            # activate the user's language
-            activate(language)
+            if language is not None:
+                # activate the user's language
+                activate(language)
         
         # update context with user specific translations
         context = Context({
@@ -319,11 +327,15 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
         body = render_to_string("notification/email_body.txt", {
             "message": messages["full.txt"],
         }, context)
-        
-        notice = Notice.objects.create(recipient=user, message=messages["notice.html"],
-            notice_type=notice_type, on_site=on_site, sender=sender)
-        if should_send(user, notice_type, "1") and user.email and user.is_active: # Email
-            recipients.append(user.email)
+       
+        if isinstance(user, AnonymousUser):
+            if hasattr(user, 'email'):
+                recipients.append(user.email)
+        else:
+            notice = Notice.objects.create(recipient=user, message=messages["notice.html"],
+                notice_type=notice_type, on_site=on_site, sender=sender)
+            if should_send(user, notice_type, "1") and user.email and user.is_active: # Email
+                recipients.append(user.email)
         send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, recipients)
     
     # reset environment to original language
@@ -356,11 +368,16 @@ def queue(users, label, extra_context=None, on_site=True, sender=None):
     Queue the notification in NoticeQueueBatch. This allows for large amounts
     of user notifications to be deferred to a seperate process running outside
     the webserver.
+
+    If the ``users`` argument contains one or more AnonymousUser instances, 
+    all notices are sent with ``send_now()``.
     """
     if extra_context is None:
         extra_context = {}
     if isinstance(users, QuerySet):
         users = [row["pk"] for row in users.values("pk")]
+    elif any((isinstance(user, AnonymousUser) for user in users)):
+        return send_now(users, label, extra_context=None, on_site=True)
     else:
         users = [user.pk for user in users]
     notices = []
