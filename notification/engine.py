@@ -25,7 +25,7 @@ LOCK_WAIT_TIMEOUT = getattr(settings, "NOTIFICATION_LOCK_WAIT_TIMEOUT", -1)
 
 def send_all():
     lock = FileLock("send_notices")
-    
+
     logging.debug("acquiring lock...")
     try:
         lock.acquire(LOCK_WAIT_TIMEOUT)
@@ -36,10 +36,10 @@ def send_all():
         logging.debug("waiting for the lock timed out. quitting.")
         return
     logging.debug("acquired.")
-    
-    batches, sent = 0, 0
+
+    batches, sent, tried = 0, 0, 0
     start_time = time.time()
-    
+
     try:
         # nesting the try statement to be Python 2.4
         try:
@@ -52,12 +52,22 @@ def send_all():
                         # call this once per user to be atomic and allow for logging to
                         # accurately show how long each takes.
                         notification.send_now([user], label, extra_context, on_site, sender)
+                        tried = tried + 1
                     except User.DoesNotExist:
+                        tried = tried + 1
                         # Ignore deleted users, just warn about them
                         logging.warning("not emitting notice %s to user %s since it does not exist" % (label, user))
+                    except Exception as e:
+                        logging.critical("Error while sending email to user: %s. Notification: %s" % (user, label))
+                        logging.critical("Exception: %s" % e.value)
+                        logging.critical("Updating NoticeQueueBatch object to avoid re-sending to same users...")
+                        queued_batch.pickled_data = pickle.dumps(notices[tried:]).encode("base64")
+                        queued_batch.save()
+                        raise e
                     sent += 1
                 queued_batch.delete()
                 batches += 1
+                tried = 0
         except:
             # get the exception
             exc_class, e, t = sys.exc_info()
@@ -72,7 +82,7 @@ def send_all():
         logging.debug("releasing lock...")
         lock.release()
         logging.debug("released.")
-    
+
     logging.info("")
     logging.info("%s batches, %s sent" % (batches, sent,))
     logging.info("done in %.2f seconds" % (time.time() - start_time))
